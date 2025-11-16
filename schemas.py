@@ -1,48 +1,65 @@
 """
-Database Schemas
+Database Schemas for ShootUp
 
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
-
-Each Pydantic model represents a collection in your database.
-Model name is converted to lowercase for the collection name:
-- User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+Each Pydantic model represents a collection in MongoDB. The collection name
+is the lowercase of the class name.
 """
-
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
+from datetime import datetime
 
-# Example schemas (replace with your own):
-
-class User(BaseModel):
+class Userprofile(BaseModel):
     """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
+    User profile collection (collection name: "userprofile")
     """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    user_id: str = Field(..., description="App-scoped user identifier")
+    username: str = Field(..., description="Display name")
+    avatar_url: Optional[str] = Field(None, description="Profile photo URL")
+    bio: Optional[str] = None
+    following_events: List[str] = Field(default_factory=list, description="Event IDs followed")
 
-class Product(BaseModel):
+class Event(BaseModel):
     """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
+    Event collection (collection name: "event")
     """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+    code: str = Field(..., description="Human-friendly join code encoded in QR")
+    title: str
+    date_iso: Optional[str] = Field(None, description="ISO date string of event start")
+    location: Optional[str] = None
+    access: str = Field("public", description="public|private")
+    cover_url: Optional[str] = None
+    participants: List[str] = Field(default_factory=list, description="User IDs of participants")
+    challenges: List[str] = Field(default_factory=list, description="Simple challenge prompts")
+    ended: bool = False
 
-# Add your own schemas here:
-# --------------------------------------------------
+class Media(BaseModel):
+    """
+    Media uploaded by participants (collection name: "media")
+    """
+    event_id: str = Field(..., description="Event ObjectId as string")
+    user_id: str
+    url: str = Field(..., description="Photo/video URL")
+    media_type: str = Field("photo", description="photo|video")
+    challenge: Optional[str] = Field(None, description="Prompt text if tied to a challenge")
+    likes_count: int = 0
+    comments_count: int = 0
 
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Comment(BaseModel):
+    """
+    Comments on media (collection name: "comment")
+    """
+    media_id: str
+    user_id: str
+    text: str
+
+class Like(BaseModel):
+    """
+    Likes on media (collection name: "like")
+    """
+    media_id: str
+    user_id: str
+
+# Minimal schema used when creating via database helper
+class SimpleDoc(BaseModel):
+    key: str
+    value: str
